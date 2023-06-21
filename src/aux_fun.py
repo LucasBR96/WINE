@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 
 from sklearn.model_selection import StratifiedKFold
+from sklearn.decomposition import PCA
 
 def bin_f1_score( guess : np.ndarray , classes : np.ndarray ):
 
@@ -44,3 +45,26 @@ def get_prepared_data( df : pd.DataFrame , target : pd.Series , k = 10 , seed = 
 
         # returning pre processed data
         yield ( X_train , y_train ) , ( X_test , y_test )
+
+
+################### CLUSTERIZATION #########################
+
+def cluster_get_data( ):
+
+    #---------------------------------------------------
+    # Basic data
+    data = pd.read_csv( "DATA/winequality.csv" )
+    X = data.to_numpy()[ : , :-1 ]
+
+    #--------------------------------------------------
+    # normalized data
+    mu = X.mean( axis = 0 )
+    sigma = X.std( axis = 0 )
+    norm_X = ( X - mu )/sigma
+
+    #-------------------------------------------------
+    # pca form
+    pca = PCA( 2 ).fit( norm_X )
+    X_2d = pca.transform( norm_X )
+
+    return norm_X , X_2d , data.columns[ :-1 ]
