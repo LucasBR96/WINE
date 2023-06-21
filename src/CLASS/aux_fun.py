@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 
+from sklearn.model_selection import StratifiedKFold
+
 def bin_f1_score( guess : np.ndarray , classes : np.ndarray ):
 
     #--------------------------------------
@@ -14,3 +16,31 @@ def bin_f1_score( guess : np.ndarray , classes : np.ndarray ):
     precision = tp/( tp + fp )
     recall    = tp/( tp + fn )
     return 2*precision*recall/( precision + recall )
+
+def get_prepared_data( df : pd.DataFrame , target : pd.Series , k = 10 , seed = None ):
+
+    # df contains de discriminatory data
+    X = df.to_numpy()
+
+    # target is the class data
+    y = target.to_numpy()
+
+    # making the k folder
+    skf = StratifiedKFold( n_splits = k , random_state = seed )
+    skf_iter = skf.split( X , y )
+
+    for _ in range( k ):
+
+        # next fold
+        train_idx , test_idx = next( skf_iter )
+        X_train , y_train = X[ train_idx ] , y[ train_idx ]
+        X_test , y_test = X[ test_idx ] , y[ test_idx ]
+
+        # scaling X based on training set
+        X_max = X_train.max( axis = 0 )
+        X_min = X_train.min( axis = 0 )
+        X_train = ( X_train - X_min )/( X_max - X_min )
+        X_test = ( X_test - X_min )/( X_max - X_min )
+
+        # returning pre processed data
+        yield ( X_train , y_train ) , ( X_test , y_test )
