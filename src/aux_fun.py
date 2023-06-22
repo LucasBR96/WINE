@@ -99,7 +99,7 @@ def cluster_score( X : np.ndarray ):
     d_sqr = ( X - mu )**2
     d = np.sqrt( d_sqr.sum( axis = 1 ) )
 
-    return d.mean()
+    return -d.mean()
 
 # TODO extra for if the project is done ahead of schedule 
 # def mean_si_coef( X : np.ndarray , labels : np.ndarray ):
