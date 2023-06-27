@@ -4,6 +4,30 @@ from typing import *
 
 from sklearn.model_selection import StratifiedKFold
 from sklearn.decomposition import PCA
+from sklearn.neighbors import NearestNeighbors as nn
+
+################### CLASSIFICATION #########################
+
+def class_get_data( ):
+
+    #---------------------------------------------------
+    # Basic data
+    data = pd.read_csv( "DATA/winequality.csv" )
+    X = data.to_numpy()[ : , :-1 ]
+    y = data.to_numpy()[ : , -1 ]
+
+    #--------------------------------------------------
+    # normalized data
+    mu = X.mean( axis = 0 )
+    sigma = X.std( axis = 0 )
+    norm_X = ( X - mu )/sigma
+
+    #-------------------------------------------------
+    # pca form
+    pca = PCA( 2 ).fit( norm_X )
+    X_2d = pca.transform( norm_X )
+
+    return X , y , X_2d , data.columns
 
 def bin_f1_score( guess : np.ndarray , classes : np.ndarray ):
 
@@ -19,13 +43,57 @@ def bin_f1_score( guess : np.ndarray , classes : np.ndarray ):
     recall    = tp/( tp + fn )
     return 2*precision*recall/( precision + recall )
 
-def get_prepared_data( df : pd.DataFrame , target : pd.Series , k = 10 , seed = None ):
+def knn_sythesis( X : np.ndarray , num_new : int , n_ngh = 5 ):
+    m , n = X.shape()
 
-    # df contains de discriminatory data
-    X = df.to_numpy()
+    # -----------------------------------
+    # sampling minority class
+    idxs = np.random.sample( m , num_new )
+    sample = X[ idxs ]
 
-    # target is the class data
-    y = target.to_numpy()
+    #------------------------------------
+    # getting the nearest neighbors of each
+    # member of the sample
+    knn : nn = nn( n_ngh ).fit( X )
+    neighs = knn.kneighbors( sample , return_distance = False ) 
+
+    synth_X = np.zeros( num_new , n )
+    for i in range( num_new ):
+
+        #-----------------------------------
+        # getting new element
+        X_sample = X[ neighs[ i ] ]
+        weights = np.random.random( n_ngh )
+        weights = weights/weights.sum()
+        synth_X[ i ] = weights@X_sample
+    
+    return synth_X
+
+def smote_supersampling( X : np.ndarray , y : np.ndarray , n_ngh = 5 , seed = None , replace = True ):
+    
+    #-------------------------------------------
+    # finding the minority class, binary case
+    n = len( y )
+    n_pos = y.sum( dtype = int )
+    min_cls = 1 if n_pos <= n - n_pos else 0
+    
+    # --------------------------------------
+    # Separating the minority class
+    where = ( y == min_cls )
+    X_min = X[ where ]
+    n_min = n_pos if min_cls else n - n_pos
+
+    #------------------------------------------
+    # how many new samples of the minority class
+    new = n - n_min
+    if replace:
+        new = 1 + new//2
+
+    #-------------------------------------
+    # getting synthetic data
+    synth_X = knn_sythesis( X_min , new , n_ngh )
+
+def get_prepared_data( X : np.ndarray , y : np.ndarray , k = 10 , seed = None ):
 
     # making the k folder
     skf = StratifiedKFold( n_splits = k , random_state = seed )
@@ -39,10 +107,13 @@ def get_prepared_data( df : pd.DataFrame , target : pd.Series , k = 10 , seed = 
         X_test , y_test = X[ test_idx ] , y[ test_idx ]
 
         # scaling X based on training set
-        X_max = X_train.max( axis = 0 )
-        X_min = X_train.min( axis = 0 )
-        X_train = ( X_train - X_min )/( X_max - X_min )
-        X_test = ( X_test - X_min )/( X_max - X_min )
+        mu    = X_train.mean( axis = 0 )
+        sigma = X_train.std( axis = 0 )
+        X_train = ( X_train - mu )/sigma
+        X_test = ( X_test - mu )/sigma
+
+        # supersampling minority class with smote
+        # X_train , y_train = smote_supersampling( X_train , y_train , seed = seed )
 
         # returning pre processed data
         yield ( X_train , y_train ) , ( X_test , y_test )
