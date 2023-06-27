@@ -44,20 +44,20 @@ def bin_f1_score( guess : np.ndarray , classes : np.ndarray ):
     return 2*precision*recall/( precision + recall )
 
 def knn_sythesis( X : np.ndarray , num_new : int , n_ngh = 5 ):
-    m , n = X.shape()
+    m , n = X.shape
 
     # -----------------------------------
     # sampling minority class
-    idxs = np.random.sample( m , num_new )
+    idxs = np.random.choice( m , num_new , replace = ( num_new > n ) )
     sample = X[ idxs ]
 
     #------------------------------------
     # getting the nearest neighbors of each
     # member of the sample
-    knn : nn = nn( n_ngh ).fit( X )
+    knn : nn = nn( n_neighbors = n_ngh ).fit( X )
     neighs = knn.kneighbors( sample , return_distance = False ) 
 
-    synth_X = np.zeros( num_new , n )
+    synth_X = np.zeros( ( num_new , n ) )
     for i in range( num_new ):
 
         #-----------------------------------
@@ -69,7 +69,7 @@ def knn_sythesis( X : np.ndarray , num_new : int , n_ngh = 5 ):
     
     return synth_X
 
-def smote_supersampling( X : np.ndarray , y : np.ndarray , n_ngh = 5 , seed = None , replace = True ):
+def smote_supersampling( X : np.ndarray , y : np.ndarray , n_ngh = 50 , seed = None , replace = True ):
     
     #-------------------------------------------
     # finding the minority class, binary case
@@ -92,6 +92,19 @@ def smote_supersampling( X : np.ndarray , y : np.ndarray , n_ngh = 5 , seed = No
     #-------------------------------------
     # getting synthetic data
     synth_X = knn_sythesis( X_min , new , n_ngh )
+
+    #---------------------------------------
+    # adding synthetic data
+    new_X = X.copy()
+    new_y = y.copy()
+
+    if replace:
+        maj_idx = np.arange( n )[ y != min_cls ]
+        idxs = np.random.choice( maj_idx , new , replace = False )
+        new_X[ idxs ] = synth_X
+        new_y[ idxs ] = min_cls
+    
+    return new_X , new_y
 
 def get_prepared_data( X : np.ndarray , y : np.ndarray , k = 10 , seed = None ):
 
