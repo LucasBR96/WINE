@@ -41,7 +41,8 @@ def bin_f1_score( guess : np.ndarray , classes : np.ndarray ):
     # terms
     precision = tp/( tp + fp )
     recall    = tp/( tp + fn )
-    return 2*precision*recall/( precision + recall )
+    return 2*precision*recall/( precision + recall ) , precision , recall
+
 
 def knn_sythesis( X : np.ndarray , num_new : int , n_ngh = 5 ):
     m , n = X.shape
@@ -106,10 +107,10 @@ def smote_supersampling( X : np.ndarray , y : np.ndarray , n_ngh = 50 , seed = N
     
     return new_X , new_y
 
-def get_prepared_data( X : np.ndarray , y : np.ndarray , k = 10 , seed = None ):
+def get_prepared_data( X : np.ndarray , y : np.ndarray , k = 10 , seed = None , smote = False):
 
     # making the k folder
-    skf = StratifiedKFold( n_splits = k , random_state = seed )
+    skf = StratifiedKFold( n_splits = k , random_state = seed , shuffle = True )
     skf_iter = skf.split( X , y )
 
     for _ in range( k ):
@@ -126,7 +127,8 @@ def get_prepared_data( X : np.ndarray , y : np.ndarray , k = 10 , seed = None ):
         X_test = ( X_test - mu )/sigma
 
         # supersampling minority class with smote
-        # X_train , y_train = smote_supersampling( X_train , y_train , seed = seed )
+        if smote:
+            X_train , y_train = smote_supersampling( X_train , y_train )
 
         # returning pre processed data
         yield ( X_train , y_train ) , ( X_test , y_test )
