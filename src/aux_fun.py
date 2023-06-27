@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 from typing import *
 
+from itertools import product
+
 from sklearn.model_selection import StratifiedKFold
 from sklearn.decomposition import PCA
 from sklearn.neighbors import NearestNeighbors as nn
@@ -41,7 +43,8 @@ def bin_f1_score( guess : np.ndarray , classes : np.ndarray ):
     # terms
     precision = tp/( tp + fp )
     recall    = tp/( tp + fn )
-    return 2*precision*recall/( precision + recall ) , precision , recall
+    score = ( 3*precision + recall )/4
+    return score , precision , recall
 
 
 def knn_sythesis( X : np.ndarray , num_new : int , n_ngh = 5 ):
@@ -70,7 +73,7 @@ def knn_sythesis( X : np.ndarray , num_new : int , n_ngh = 5 ):
     
     return synth_X
 
-def smote_supersampling( X : np.ndarray , y : np.ndarray , n_ngh = 50 , seed = None , replace = True ):
+def smote_supersampling( X : np.ndarray , y : np.ndarray , n_ngh = 25 , seed = None , replace = True ):
     
     #-------------------------------------------
     # finding the minority class, binary case
