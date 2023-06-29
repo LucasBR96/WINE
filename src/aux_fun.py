@@ -7,6 +7,7 @@ from itertools import product
 from sklearn.model_selection import StratifiedKFold
 from sklearn.decomposition import PCA
 from sklearn.neighbors import NearestNeighbors as nn
+from sklearn.base import clone
 
 ################### CLASSIFICATION #########################
 
@@ -136,6 +137,42 @@ def get_prepared_data( X : np.ndarray , y : np.ndarray , k = 10 , seed = None , 
         # returning pre processed data
         yield ( X_train , y_train ) , ( X_test , y_test )
 
+# def results_to_csv( data : pd.DataFrame , path : str ):
+    
+#     arr_copy = np.copy(data.to_numpy())
+#     for i in np.ndindex(arr_copy.shape):
+#         arr_copy[i] = str(arr_copy[i]).replace('.', ',')
+
+#     str_data = pd.DataFrame( data = arr_copy , columns = data.columns )
+#     str_data.to_csv( path , sep = ";" )
+
+def eval_model( folds : Iterator , model : object , eval_function : Callable  ):
+
+    '''
+    folds -> iterator for folded data set ( k-fold stratfied ), it is reco
+    mended that the training data is small enought to be fitted at once
+
+    model -> a sklearn ( or custom ) classification model that have already
+    defined parameters but is not fitted yet
+
+    eval_function -> returns a dict[ str , float ] that evaluates the performan
+    ce of the model on several metrics
+    '''
+
+    # results for each fold
+    lst = []
+    for ( X_train , y_train ) , ( X_test , y_test ) in folds:
+
+        # no object should fit twice
+        m_clone = clone( model )
+        m_clone.fit( X_train , y_train )
+
+        #evaluating on test set
+        y_hat = m_clone.predict( X_test )
+        eval_metrics = eval_function( y_hat , y_test )
+        lst.append( eval_metrics )
+    
+    return pd.DataFrame( lst )
 
 ################### CLUSTERIZATION #########################
 
